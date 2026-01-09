@@ -1,17 +1,20 @@
 import fs from 'node:fs/promises';
 import express from 'express';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 // Constants
 const isProduction = process.env.NODE_ENV === 'production';
 const port = process.env.PORT || 5173;
 const base = process.env.BASE || '/';
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Cached production assets
 const templateHtml = isProduction
-    ? await fs.readFile('./dist/client/index.html', 'utf-8')
+    ? await fs.readFile(path.resolve(__dirname, 'dist/client/index.html'), 'utf-8')
     : '';
 const ssrManifest = isProduction
-    ? await fs.readFile('./dist/client/.vite/ssr-manifest.json', 'utf-8')
+    ? await fs.readFile(path.resolve(__dirname, 'dist/client/.vite/ssr-manifest.json'), 'utf-8')
     : undefined;
 
 // Create http server
@@ -31,7 +34,7 @@ if (!isProduction) {
     const compression = (await import('compression')).default;
     const sirv = (await import('serve-static')).default;
     app.use(compression());
-    app.use(base, sirv('./dist/client', { extensions: [], index: false }));
+    app.use(base, sirv(path.resolve(__dirname, 'dist/client'), { extensions: [], index: false }));
 }
 
 // Serve HTML
@@ -49,7 +52,7 @@ app.use(async (req, res) => {
             render = (await vite.ssrLoadModule('/src/entry-server.jsx')).render;
         } else {
             template = templateHtml;
-            render = (await import('./dist/server/entry-server.js')).render;
+            render = (await import(path.resolve(__dirname, './dist/server/entry-server.js'))).render;
         }
 
         const context = {};
